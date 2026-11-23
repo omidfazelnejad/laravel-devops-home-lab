@@ -1,0 +1,31 @@
+---
+- name: 1. Deploy Root Docker Compose .env securely
+  ansible.builtin.template:
+    src: root-env.j2
+    dest: "{{ project_root }}/.env"
+    owner: "{{ host_user }}"
+    group: "{{ host_user }}"
+    mode: '0600'
+
+- name: 2. Deploy Laravel Application .env securely
+  ansible.builtin.template:
+    src: laravel-env.j2
+    dest: "{{ laravel_root }}/.env"
+    owner: "{{ host_user }}"
+    group: "{{ web_group }}"
+    mode: '0640'
+
+- name: 3. Ensure Docker Compose Stack is running
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: "{{ project_root }}"
+  register: compose_up
+  changed_when: >
+    'Started' in compose_up.stdout or 'Started' in compose_up.stderr or
+    'Created' in compose_up.stdout or 'Created' in compose_up.stderr or
+    'Recreated' in compose_up.stdout or 'Recreated' in compose_up.stderr
+
+- name: 4. Verify deployment health (Run Healthcheck)
+  ansible.builtin.command:
+    cmd: "{{ project_root }}/scripts/healthcheck.sh"
+  changed_when: false

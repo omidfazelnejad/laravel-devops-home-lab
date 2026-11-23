@@ -1,0 +1,138 @@
+---
+- name: 1. Ensure base Linux packages are installed
+  ansible.builtin.apt:
+    name:
+      - acl
+      - curl
+      - unzip
+      - cron
+      - logrotate
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: 2. Ensure cron service is running and enabled
+  ansible.builtin.service:
+    name: cron
+    state: started
+    enabled: yes
+
+- name: 3. Add host user ({{ host_user }}) to web group ({{ web_group }})
+  ansible.builtin.user:
+    name: "{{ host_user }}"
+    groups: "{{ web_group }}"
+    append: yes
+
+- name: 4. Ensure operational directories (backups & scripts) exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ host_user }}"
+    group: "{{ host_user }}"
+    mode: '0755'
+  loop:
+    - "{{ project_root }}/backups"
+    - "{{ project_root }}/scripts"
+
+- name: 5. Ensure operational Bash scripts are executable (0755)
+  ansible.builtin.file:
+    path: "{{ project_root }}/scripts/{{ item }}"
+    state: file
+    owner: "{{ host_user }}"
+    group: "{{ host_user }}"
+    mode: '0755'
+  loop:
+    - backup-db.sh
+    - restore-db.sh
+    - healthcheck.sh
+
+- name: 6a. Enforce www-data ownership on Laravel writable paths
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ web_group }}"
+    group: "{{ web_group }}"
+    recurse: yes
+  loop:
+    - "{{ laravel_root }}/storage"
+    - "{{ laravel_root }}/bootstrap/cache"
+
+- name: 6b. Enforce SGID (2775) strictly on directories (Idempotent)
+  ansible.builtin.command:
+    argv:
+      - find
+      - "{{ item }}"
+      - -type
+      - d
+      - "!"
+      - -perm
+      - "2775"
+      - -exec
+      - chmod
+      - "2775"
+      - "{}"
+      - +
+      - -print
+  register: dir_perm_fix
+  changed_when: dir_perm_fix.stdout != ""
+  loop:
+    - "{{ laravel_root }}/storage"
+    - "{{ laravel_root }}/bootstrap/cache"
+
+- name: 6c. Enforce clean 0664 strictly on files (Idempotent)
+  ansible.builtin.command:
+    argv:
+      - find
+      - "{{ item }}"
+      - -type
+      - f
+      - "!"
+      - -perm
+      - "0664"
+      - -exec
+      - chmod
+      - "0664"
+      - "{}"
+      - +
+      - -print
+  register: file_perm_fix
+  changed_when: file_perm_fix.stdout != ""
+  loop:
+    - "{{ laravel_root }}/storage"
+    - "{{ laravel_root }}/bootstrap/cache"
+
+- name: 6d. Find all Laravel writable subdirectories for Default ACL
+  ansible.builtin.find:
+    paths:
+      - "{{ laravel_root }}/storage"
+      - "{{ laravel_root }}/bootstrap/cache"
+    file_type: directory
+    recurse: yes
+  register: writable_subdirs
+
+- name: 6e. Enforce POSIX Default ACL (group:www-data:rwx) to override PHP umask
+  ansible.posix.acl:
+    path: "{{ item }}"
+    entity: "{{ web_group }}"
+    etype: group
+    permissions: rwx
+    default: true
+    state: present
+  loop: "{{ [laravel_root ~ '/storage', laravel_root ~ '/bootstrap/cache'] + (writable_subdirs.files | map(attribute='path') | list) }}"
+
+- name: 7. Deploy host logrotate configuration via Jinja2 template
+  ansible.builtin.template:
+    src: laravel-lab.logrotate.j2
+    dest: /etc/logrotate.d/laravel-lab
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: 8. Configure automated nightly database backup cronjob (02:30 AM)
+  ansible.builtin.cron:
+    name: "Laravel Home Lab Automated Database Backup"
+    user: "{{ host_user }}"
+    minute: "30"
+    hour: "2"
+    job: "{{ project_root }}/scripts/backup-db.sh >> {{ project_root }}/backups/backup.log 2>&1"
+    state: present

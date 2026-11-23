@@ -1,0 +1,8 @@
+---
+# Copy to ansible/group_vars/vault.yml, replace values, then encrypt:
+#   ansible-vault encrypt ansible/group_vars/vault.yml
+vault_mariadb_root_password: "CHANGE_ME_STRONG_ROOT_PASS"
+vault_mariadb_password: "CHANGE_ME_STRONG_USER_PASS"
+vault_laravel_app_key: "base64:CHANGE_ME_GENERATE_WITH_ARTISAN_KEY_GENERATE"
+vault_mail_username: "null"
+vault_mail_password: "null"

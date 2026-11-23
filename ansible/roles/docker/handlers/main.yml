@@ -1,0 +1,10 @@
+---
+- name: Restart Docker
+  ansible.builtin.shell: |
+    if systemctl list-unit-files docker.service >/dev/null 2>&1; then
+      systemctl restart docker
+    else
+      echo "WSL2 Docker Desktop detected: skipping systemd restart, verifying daemon socket..."
+      docker info >/dev/null
+    fi
+  changed_when: true

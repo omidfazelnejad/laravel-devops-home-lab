@@ -1,0 +1,12 @@
+---
+- name: Provision Laravel DevOps Lab Host
+  hosts: local_lab
+  become: yes
+  vars_files:
+    - ../group_vars/all.yml
+    - ../group_vars/vault.yml
+
+  roles:
+    - common
+    - docker
+    - laravel_deploy

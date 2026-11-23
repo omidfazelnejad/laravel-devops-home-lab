@@ -1,0 +1,11 @@
+# Managed by Ansible - Do not edit manually
+{{ laravel_root }}/storage/logs/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    delaycompress
+    notifempty
+    copytruncate
+    su root {{ web_group }}
+}

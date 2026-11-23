@@ -1,0 +1,15 @@
+---
+# Copy to ansible/group_vars/all.yml and adjust for your target host
+host_user: ubuntu
+web_group: www-data
+project_root: /home/ubuntu/projects/laravel-devops-home-lab
+laravel_root: "{{ project_root }}/app"
+
+app_name: "LaravelDevOpsLab"
+app_env: "production"
+app_debug: "false"
+app_url: "http://127.0.0.1:8080"
+
+db_host: "laravel-lab-mysql"
+db_database: "laravel_lab"
+db_username: "laravel_user"

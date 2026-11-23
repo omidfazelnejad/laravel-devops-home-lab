@@ -1,0 +1,34 @@
+---
+- name: 1. Ensure docker group exists
+  ansible.builtin.group:
+    name: docker
+    state: present
+
+- name: 2. Ensure host user ({{ host_user }}) is in docker group
+  ansible.builtin.user:
+    name: "{{ host_user }}"
+    groups: docker
+    append: yes
+
+- name: 3. Ensure /etc/docker directory exists
+  ansible.builtin.file:
+    path: /etc/docker
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: 4. Deploy Docker daemon configuration (triggers Handler on change)
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart Docker
+
+- name: 5. Verify Docker Engine and Compose v2 availability
+  ansible.builtin.command:
+    cmd: docker compose version
+  register: compose_check
+  changed_when: false
