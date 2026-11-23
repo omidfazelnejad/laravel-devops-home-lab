@@ -1,0 +1,53 @@
+# ============================================================
+# 1. Secrets, Credentials & Environment Files (STRICT)
+# ============================================================
+.env
+.env.*
+!.env.example
+ansible/.vault_pass
+ansible/group_vars/vault.yml
+ansible/group_vars/all.yml
+*.pem
+*.key
+*.crt
+*.p12
+id_rsa*
+
+# ============================================================
+# 2. Private Application Workload & Legacy Directories
+# ============================================================
+# Keep empty mount directory via .gitkeep; exclude real cPanel app code
+/app/*
+!/app/.gitkeep
+/app_old/
+
+# ============================================================
+# 3. Database Dumps, Backups & Runtime Logs
+# ============================================================
+/database-dump/*
+!/database-dump/.gitkeep
+/backups/*
+!/backups/.gitkeep
+*.sql
+*.sql.gz
+*.dump
+*.log
+
+# ============================================================
+# 4. Ansible & Operational Artifacts
+# ============================================================
+ansible/*.retry
+*.retry
+__pycache__/
+*.pyc
+
+# ============================================================
+# 5. OS, Editor & Temporary Files
+# ============================================================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
