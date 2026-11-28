@@ -67,7 +67,7 @@ Update the placeholder values and encrypt `ansible/group_vars/vault.yml` with `a
 cd ansible && ansible-playbook playbooks/site.yml
 ~~~
 
-5. **Verify stack health:**
+5. **Verify stack health and confirm exit code 0:**
 ~~~bash
 ./scripts/healthcheck.sh
 ~~~
